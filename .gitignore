@@ -1,0 +1,7 @@
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+.cache/
+*.pyc
+__pycache__/
