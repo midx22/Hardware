@@ -11,6 +11,7 @@
 #include "esp_http_server.h"
 #include "ina226.h"
 #include "dns_server.h"
+#include "espnow_ctrl.h"
 
 static const char *TAG = "main";
 
@@ -21,11 +22,59 @@ static const char *TAG = "main";
 #define WIFI_AP_CHANNEL 1
 #define WIFI_AP_MAX_STA 4
 #define CTRL_GPIO       GPIO_NUM_10
+#define BOOT_GPIO       GPIO_NUM_9   // BOOT 键（低电平有效）
+#define PAIR_HOLD_MS    1000         // 长按超过此时长触发配对
 
 // 全局 INA226 数据（任务间共享）
 static float g_bus_v = 0, g_current_ma = 0, g_power_mw = 0;
 static ina226_t g_ina;
 static int g_gpio10_state = 0;
+
+// ─── ESP-NOW 控制回调（遥控器发来控制帧时调用）────────────────────────────
+static void on_espnow_ctrl(uint8_t io_state)
+{
+    g_gpio10_state = io_state;
+    gpio_set_level(CTRL_GPIO, io_state);
+    ESP_LOGI(TAG, "ESP-NOW 控制 IO10 → %d", io_state);
+}
+
+// ─── BOOT 键监听任务（长按 1 s 进入配对模式）────────────────────────────────
+static void boot_button_task(void *arg)
+{
+    gpio_config_t io = {
+        .pin_bit_mask = (1ULL << BOOT_GPIO),
+        .mode         = GPIO_MODE_INPUT,
+        .pull_up_en   = GPIO_PULLUP_ENABLE,
+        .intr_type    = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io);
+
+    bool     last_level  = true;     // 上一次采样电平（高 = 未按）
+    uint32_t press_start = 0;        // 按下时的 tick（ms）
+
+    while (1) {
+        bool cur = gpio_get_level(BOOT_GPIO);
+
+        if (!cur && last_level) {
+            // 下降沿：记录按下时刻
+            press_start = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        } else if (!cur && !last_level) {
+            // 持续按住：检查是否超过阈值
+            uint32_t held = xTaskGetTickCount() * portTICK_PERIOD_MS - press_start;
+            if (held >= PAIR_HOLD_MS && !espnow_is_pairing()) {
+                ESP_LOGI(TAG, "BOOT 键长按 %"PRIu32" ms，触发配对", held);
+                espnow_start_pairing();
+                // 等待配对任务结束，避免重复触发
+                while (espnow_is_pairing()) {
+                    vTaskDelay(pdMS_TO_TICKS(200));
+                }
+            }
+        }
+
+        last_level = cur;
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
 
 // ─── INA226 采集任务 ────────────────────────────────────────────────────────
 static void ina226_task(void *arg)
@@ -249,5 +298,12 @@ void app_main(void)
     // INA226 采集任务
     xTaskCreate(ina226_task, "ina226", 2048, NULL, 5, NULL);
 
+    // ESP-NOW 初始化（WiFi 启动后才能调用）
+    ESP_ERROR_CHECK(espnow_ctrl_init(on_espnow_ctrl));
+
+    // BOOT 键监听任务
+    xTaskCreate(boot_button_task, "boot_btn", 2048, NULL, 3, NULL);
+
     ESP_LOGI(TAG, "就绪！手机连接 WiFi \"%s\" 后访问 http://192.168.4.1", WIFI_AP_SSID);
+    ESP_LOGI(TAG, "长按 BOOT 键（IO9）1 秒进入 ESP-NOW 配对模式");
 }
