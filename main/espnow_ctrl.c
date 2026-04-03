@@ -86,7 +86,7 @@ static void on_recv(const esp_now_recv_info_t *info,
     }
 }
 
-static void on_send(const uint8_t *mac, esp_now_send_status_t st) {}
+static void on_send(const wifi_tx_info_t *tx_info, esp_now_send_status_t st) { (void)tx_info; (void)st; }
 
 // ─── 配对任务 ────────────────────────────────────────────────────────────────
 
