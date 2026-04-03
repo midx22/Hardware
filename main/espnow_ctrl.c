@@ -54,9 +54,10 @@ static void add_peer(const uint8_t *mac)
     if (esp_now_is_peer_exist(mac)) return;
     esp_now_peer_info_t p = {0};
     memcpy(p.peer_addr, mac, 6);
-    p.channel = 0;       // 跟随当前信道
+    p.channel = 0;          // 跟随当前信道
+    p.ifidx   = WIFI_IF_AP; // 接收端工作在 AP 模式，必须指定 AP 接口
     p.encrypt = false;
-    esp_now_add_peer(&p);
+    ESP_ERROR_CHECK(esp_now_add_peer(&p));
 }
 
 // ─── ESP-NOW 接收回调 ────────────────────────────────────────────────────────
