@@ -20,6 +20,7 @@
 
 - [主控板硬件说明](<主控板.md>)
 - [ESP32-C3 核心系统设计](<esp32.md>)
+- [ESP32 源码 (GitHub地址)](https://github.com/midx22/ESP32-Source-Code) <!-- 请替换为您真实的源码仓库地址 -->
 
 ---
 
