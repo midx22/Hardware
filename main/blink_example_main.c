@@ -258,6 +258,8 @@ static void wifi_init_ap(void)
     };
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
     ESP_ERROR_CHECK(esp_wifi_start());
+    // 降低发射功率（单位 0.25 dBm，52 = 13 dBm）减少电流尖峰，缓解 BOD 复位
+    esp_wifi_set_max_tx_power(52);
     ESP_LOGI(TAG, "WiFi AP 已启动  SSID: %s  密码: %s", WIFI_AP_SSID, WIFI_AP_PASS);
 }
 
