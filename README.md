@@ -20,7 +20,7 @@
 
 - [主控板硬件说明](<主控板.md>)
 - [ESP32-C3 核心系统设计](<esp32.md>)
-- [ESP32 源码 (GitHub地址)](https://github.com/midx22/ESP32-Source-Code) <!-- 请替换为您真实的源码仓库地址 -->
+
 
 ---
 
@@ -28,7 +28,8 @@
 包含了系统大功率负载的缓启动与保护设计。
 
 - [TPS2491 高功率缓启动](<TPS2491 高功率缓启动.md>)
-
+- [ESP32 急停源码 (GitHub地址)](https://github.com/midx22/Hardware/tree/main/Wireless_emergency_stop_button) 
+- [无线急停与智能监测](<无线急停与智能监测.md>)
 ---
 
 ## 杂谈
